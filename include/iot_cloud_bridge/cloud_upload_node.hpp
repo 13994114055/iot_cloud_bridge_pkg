@@ -3,14 +3,14 @@
 
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/string.hpp>
-#include <sensor_msgs/msg/compressed_image.hpp>
 #include <emotion_msgs/msg/emotion_result.hpp>
-#include <emotion_msgs/msg/face_detections.hpp>   // 【新增】
+#include <emotion_msgs/msg/face_detections.hpp>
 
 #include <string>
 #include <thread>
 #include <mutex>
 #include <atomic>
+#include <chrono>
 
 #include "iot_cloud_bridge/serial_utils.hpp"
 
@@ -22,7 +22,7 @@ public:
   ~CloudUploadNode();
 
 private:
-  // 参数
+  // ---- 参数 ----
   std::string serial_port_;
   int baudrate_;
   std::string device_id_;
@@ -30,61 +30,56 @@ private:
   std::string port_;
   std::string password_;
   std::string emotion_topic_;
-  std::string jpeg_topic_;
   double face_interval_;
-  double image_interval_;
-  // 【新增】动态密码生成相关辅助函数
-  std::string GetCurrentTimestamp();          // 获取 UTC 时间 YYYYMMDDHH
-  std::string HmacSha256(const std::string& key, const std::string& data);
 
-  // 串口对象
+  // ---- 串口对象 ----
   L610Serial l610_;
 
-  // 订阅
+  // ---- 订阅 ----
   rclcpp::Subscription<emotion_msgs::msg::EmotionResult>::SharedPtr emotion_sub_;
-  rclcpp::Subscription<sensor_msgs::msg::CompressedImage>::SharedPtr jpeg_sub_;
-  rclcpp::Subscription<emotion_msgs::msg::FaceDetections>::SharedPtr detections_sub_;  // 【新增】
+  rclcpp::Subscription<emotion_msgs::msg::FaceDetections>::SharedPtr detections_sub_;
+  rclcpp::Subscription<std_msgs::msg::String>::SharedPtr user_text_sub_;
+  rclcpp::Subscription<std_msgs::msg::String>::SharedPtr robot_text_sub_;
 
-  // 缓存最新数据
+  // ---- 缓存 ----
   emotion_msgs::msg::EmotionResult::SharedPtr latest_face_;
-  sensor_msgs::msg::CompressedImage::SharedPtr latest_jpeg_;
-  emotion_msgs::msg::FaceDetections::SharedPtr latest_detections_;  // 【新增】
+  emotion_msgs::msg::FaceDetections::SharedPtr latest_detections_;
+  std_msgs::msg::String::SharedPtr latest_user_text_;
+  std_msgs::msg::String::SharedPtr latest_robot_text_;
+
   std::mutex data_mutex_;
-  std::mutex detections_mutex_;  // 【新增】
+  std::mutex detections_mutex_;
+  std::mutex text_mutex_;
 
-  // 时间记录
+  // ---- 时间记录 ----
   std::chrono::steady_clock::time_point last_face_time_;
-  std::chrono::steady_clock::time_point last_image_time_;
 
-  // 下行命令处理线程
+  // ---- 线程控制 ----
   std::thread cmd_thread_;
   std::atomic<bool> running_;
 
-  // 回调函数
+  // ---- 回调函数 ----
   void OnEmotion(const emotion_msgs::msg::EmotionResult::SharedPtr msg);
-  void OnJpeg(const sensor_msgs::msg::CompressedImage::SharedPtr msg);
+  void OnUserText(const std_msgs::msg::String::SharedPtr msg);
+  void OnRobotText(const std_msgs::msg::String::SharedPtr msg);
 
-  // 定时检查发送
+  // ---- 定时检查发送 ----
   void CheckAndSend();
 
-  // 【修改】三个新发送函数，替换原来的 SendFaceData 和 SendJpegData
-  void SendReportData();     // 情绪 + 置信度 + 关键点 + 框坐标 → /user/report
-  void SendResponseData();   // 疏导建议 + 交互文本 → /user/response
-  void SendImageData();      // JPEG 图片 → /user/image
-
-  // 【修改】PublishToCloud 增加 topic 参数
+  // ---- 发送函数 ----
+  void SendReportData();
+  void SendChatData(const std::string& type, const std::string& text, const std::string& last_other);
   void PublishToCloud(const nlohmann::json& payload, const std::string& topic);
 
-  // 命令处理
+  // ---- 命令处理 ----
   void HandleIncomingLine(const std::string& line);
   void ProcessCommand(const nlohmann::json& cmd_json);
 
-  // 连接华为云
+  // ---- 连接华为云 ----
   bool ConnectHuaweiCloud();
 
-  // 辅助
+  // ---- 辅助 ----
   std::string EmotionLabelToString(int label);
-  std::string Base64Encode(const unsigned char* data, size_t len);  // 【新增】Base64编码
 
   rclcpp::TimerBase::SharedPtr timer_;
 };

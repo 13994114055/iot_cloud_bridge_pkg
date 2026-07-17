@@ -7,6 +7,4 @@
     port: "1883"                                                         # 改成 1883
     password: "Broad end"
     emotion_topic: "/emotion/result"
-    jpeg_topic: "/camera/jpeg"
-    face_report_interval: 0.5
-    image_report_interval: 0.1
+    face_report_interval: 0.067
