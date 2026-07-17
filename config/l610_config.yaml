@@ -3,7 +3,7 @@
     serial_port: "/dev/ttyUSB0"
     baudrate: 115200
     device_id: "6a4b1560cbb0cf6bb96c615f_agent_2026_7_10"
-    broker: "64410107ee.st1.iotda-device.cn-north-4.myhuaweicloud.com"   # 改成你的服务器地址
+    broker: "64410107ee.st1.iotda-device.cn-north-4.myhuaweicloud.com"   
     port: "1883"                                                         # 改成 1883
     password: "Broad end"
     emotion_topic: "/emotion/result"
