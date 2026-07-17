@@ -17,17 +17,24 @@ public:
   L610Serial();
   ~L610Serial();
 
+  // ---- 串口操作 ----
   bool Open(const std::string& port, int baudrate = 115200);
   void Close();
 
-  // 发送 AT 命令，等待响应（最多 timeout_ms 毫秒）
-  // 返回响应行列表（包括最终 OK/ERROR）
+  // ---- AT 指令发送 ----
+  // 单次发送（无重试）
   std::vector<std::string> SendAT(const std::string& cmd, int timeout_ms = 3000);
+  
+  // 带重试发送
+  std::vector<std::string> SendATWithRetry(const std::string& cmd, 
+                                            int timeout_ms = 3000, 
+                                            int retries = 3,
+                                            int retry_delay_ms = 500);
 
-  // 发送 MQTT PUBLISH（封装 AT+HMPUB），自动等待 OK
+  // ---- MQTT 发布 ----
   bool PublishMQTT(const std::string& topic, const std::string& payload, int qos = 1);
 
-  // 注册下行消息回调（当收到 +HMRECV 或非 AT 响应时触发）
+  // ---- 下行消息回调 ----
   void SetRxCallback(std::function<void(const std::string&)> cb);
 
 private:

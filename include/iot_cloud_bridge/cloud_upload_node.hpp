@@ -30,6 +30,7 @@ private:
   std::string port_;
   std::string password_;
   std::string emotion_topic_;
+  std::atomic<bool> reconnecting_{false};
   double face_interval_;
 
   // ---- 串口对象 ----

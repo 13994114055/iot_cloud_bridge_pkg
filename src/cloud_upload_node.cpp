@@ -7,7 +7,7 @@
 #include <ctime>
 #include <chrono>
 
-// ---- Base64 编码（简单实现） ----
+// ---- Base64 编码（简单实现，保留备用） ----
 static const std::string base64_chars =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
@@ -53,7 +53,10 @@ namespace iot_cloud_bridge {
 CloudUploadNode::CloudUploadNode(const rclcpp::NodeOptions& options)
     : Node("cloud_upload_node", options),
       running_(true),
-      last_face_time_(std::chrono::steady_clock::now()) {
+      mqtt_connected_(false),
+      reconnecting_(false),
+      last_face_time_(std::chrono::steady_clock::now()),
+      last_keepalive_check_(std::chrono::steady_clock::now()) {
 
   // ---- 声明参数 ----
   declare_parameter("serial_port", "/dev/ttyUSB0");
@@ -87,6 +90,22 @@ CloudUploadNode::CloudUploadNode(const rclcpp::NodeOptions& options)
     throw std::runtime_error("Serial port open failed");
   }
   RCLCPP_INFO(get_logger(), "Serial port %s opened", serial_port_.c_str());
+
+  // ---- 握手检查：验证 L610 是否存活 ----
+  RCLCPP_INFO(get_logger(), "Handshaking with L610...");
+  auto handshake_resp = l610_.SendATWithRetry("AT", 2000, 3, 500);
+  bool handshake_ok = false;
+  for (const auto& line : handshake_resp) {
+    if (line.find("OK") != std::string::npos) {
+      handshake_ok = true;
+      break;
+    }
+  }
+  if (!handshake_ok) {
+    RCLCPP_ERROR(get_logger(), "L610 handshake failed! No response to AT.");
+    throw std::runtime_error("L610 handshake failed");
+  }
+  RCLCPP_INFO(get_logger(), "Handshake successful.");
 
   // ---- 连接华为云 ----
   if (!ConnectHuaweiCloud()) {
@@ -151,6 +170,11 @@ CloudUploadNode::CloudUploadNode(const rclcpp::NodeOptions& options)
       std::chrono::milliseconds(50),
       std::bind(&CloudUploadNode::CheckAndSend, this));
 
+  // ---- 保活检测定时器（每 10 秒检查一次） ----
+  keepalive_timer_ = create_wall_timer(
+      std::chrono::milliseconds(10000),
+      std::bind(&CloudUploadNode::CheckKeepAlive, this));
+
   RCLCPP_INFO(get_logger(), "CloudUploadNode initialized");
 }
 
@@ -164,28 +188,123 @@ CloudUploadNode::~CloudUploadNode() {
 }
 
 // ============================================================
-//  连接华为云（标准 MQTT AT 指令）
+//  连接华为云（标准 MQTT AT 指令，带重试）
 // ============================================================
 bool CloudUploadNode::ConnectHuaweiCloud() {
-  RCLCPP_INFO(get_logger(), "Connecting to Huawei Cloud...");
+    RCLCPP_INFO(get_logger(), "Connecting to Huawei Cloud with retry...");
 
-  std::string client_id = device_id_ + "_0_0_" + std::to_string(std::time(nullptr));
-  std::string username = device_id_;
+    std::string timestamp = std::to_string(std::time(nullptr));
+    // 签名类型：0 = 不校验时间戳（稳定优先）
+    std::string client_id = device_id_ + "_0_0_" + timestamp;
+    std::string username = device_id_;
 
-  l610_.SendAT("AT+MQTTSVR=" + broker_ + "," + port_, 3000);
-  l610_.SendAT("AT+MQTTCLIENT=" + client_id, 3000);
-  l610_.SendAT("AT+MQTTUSER=" + username, 3000);
-  l610_.SendAT("AT+MQTTPSW=" + password_, 3000);
-  auto responses = l610_.SendAT("AT+MQTTOPEN=1,1,0", 10000);
-
-  for (const auto& line : responses) {
-    if (line.find("+MQTTOPEN: OK") != std::string::npos) {
-      RCLCPP_INFO(get_logger(), "MQTT connection successful");
-      return true;
+    // 每条指令都带重试机制（3次重试，间隔500ms）
+    auto resp1 = l610_.SendATWithRetry("AT+MQTTSVR=" + broker_ + "," + port_, 3000, 3, 500);
+    if (resp1.empty() || resp1[0].find("OK") == std::string::npos) {
+        RCLCPP_ERROR(get_logger(), "Failed to set MQTT server after retries");
+        return false;
     }
-  }
-  RCLCPP_ERROR(get_logger(), "MQTT connection failed");
-  return false;
+
+    auto resp2 = l610_.SendATWithRetry("AT+MQTTCLIENT=" + client_id, 3000, 3, 500);
+    if (resp2.empty() || resp2[0].find("OK") == std::string::npos) {
+        RCLCPP_ERROR(get_logger(), "Failed to set MQTT client ID after retries");
+        return false;
+    }
+
+    auto resp3 = l610_.SendATWithRetry("AT+MQTTUSER=" + username, 3000, 3, 500);
+    if (resp3.empty() || resp3[0].find("OK") == std::string::npos) {
+        RCLCPP_ERROR(get_logger(), "Failed to set MQTT username after retries");
+        return false;
+    }
+
+    auto resp4 = l610_.SendATWithRetry("AT+MQTTPSW=" + password_, 3000, 3, 500);
+    if (resp4.empty() || resp4[0].find("OK") == std::string::npos) {
+        RCLCPP_ERROR(get_logger(), "Failed to set MQTT password after retries");
+        return false;
+    }
+
+    // 连接指令也带重试，超时时间给长一点（10秒）
+    auto responses = l610_.SendATWithRetry("AT+MQTTOPEN=1,1,0", 10000, 3, 1000);
+
+    for (const auto& line : responses) {
+        if (line.find("+MQTTOPEN: OK") != std::string::npos) {
+            RCLCPP_INFO(get_logger(), "MQTT connection successful (timestamp=%s)", timestamp.c_str());
+            mqtt_connected_.store(true);
+            return true;
+        }
+    }
+    
+    RCLCPP_ERROR(get_logger(), "MQTT connection failed after all retries");
+    mqtt_connected_.store(false);
+    return false;
+}
+
+// ============================================================
+//  保活检测：检查 L610 和 MQTT 连接状态
+// ============================================================
+void CloudUploadNode::CheckKeepAlive() {
+    // 如果正在重连，跳过本次检测
+    if (reconnecting_.load()) {
+        return;
+    }
+
+    // 发送 AT 指令测试 L610 是否还在响应
+    auto resp = l610_.SendAT("AT", 2000);
+    bool l610_alive = false;
+    for (const auto& line : resp) {
+        if (line.find("OK") != std::string::npos) {
+            l610_alive = true;
+            break;
+        }
+    }
+    
+    if (!l610_alive) {
+        RCLCPP_WARN(get_logger(), "L610 not responding, will attempt reconnect");
+        ReconnectMQTT();
+        return;
+    }
+    
+    // 如果 MQTT 状态标志为 false，触发重连
+    if (!mqtt_connected_.load()) {
+        RCLCPP_WARN(get_logger(), "MQTT not connected, attempting reconnect...");
+        ReconnectMQTT();
+    }
+}
+
+// ============================================================
+//  重连 MQTT（防抖）
+// ============================================================
+void CloudUploadNode::ReconnectMQTT() {
+    // 防止并发重连
+    bool expected = false;
+    if (!reconnecting_.compare_exchange_strong(expected, true)) {
+        RCLCPP_DEBUG(get_logger(), "Already reconnecting, skip");
+        return;
+    }
+    // 确保函数退出时重置标志
+    struct ReconnectGuard {
+        std::atomic<bool>& flag;
+        ReconnectGuard(std::atomic<bool>& f) : flag(f) {}
+        ~ReconnectGuard() { flag.store(false); }
+    } guard(reconnecting_);
+
+    std::lock_guard<std::mutex> lock(reconnect_mutex_);
+    if (mqtt_connected_.load()) {
+        RCLCPP_INFO(get_logger(), "MQTT seems connected, skip reconnect");
+        return;
+    }
+    RCLCPP_WARN(get_logger(), "Attempting MQTT reconnect...");
+    
+    l610_.SendAT("AT+MQTTDISC", 2000);
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    
+    if (ConnectHuaweiCloud()) {
+        mqtt_connected_.store(true);
+        RCLCPP_INFO(get_logger(), "MQTT reconnected successfully");
+    } else {
+        RCLCPP_ERROR(get_logger(), "MQTT reconnect failed, will retry later");
+        mqtt_connected_.store(false);
+    }
 }
 
 // ============================================================
@@ -273,7 +392,7 @@ void CloudUploadNode::SendChatData(const std::string& type,
   payload["last_other"] = last_other;
   payload["timestamp"] = std::time(nullptr);
 
-  std::string topic = "/v1/" + device_id_ + "/user/response";
+  std::string topic = "/v1/" + device_id_ + "/user/chat";
   PublishToCloud(payload, topic);
 }
 
@@ -285,7 +404,8 @@ void CloudUploadNode::PublishToCloud(const nlohmann::json& payload, const std::s
   if (l610_.PublishMQTT(topic, json_str, 1)) {
     RCLCPP_DEBUG(get_logger(), "Published to %s", topic.c_str());
   } else {
-    RCLCPP_WARN(get_logger(), "Failed to publish to %s", topic.c_str());
+    RCLCPP_WARN(get_logger(), "Failed to publish to %s (payload len=%zu)", 
+                topic.c_str(), json_str.size());
   }
 }
 
@@ -293,16 +413,33 @@ void CloudUploadNode::PublishToCloud(const nlohmann::json& payload, const std::s
 //  下行命令处理
 // ============================================================
 void CloudUploadNode::HandleIncomingLine(const std::string& line) {
-  if (line.find('{') != std::string::npos) {
-    try {
-      size_t start = line.find('{');
-      std::string json_str = line.substr(start);
-      auto cmd_json = nlohmann::json::parse(json_str);
-      ProcessCommand(cmd_json);
-    } catch (const std::exception& e) {
-      // 忽略非 JSON 行
+    // 检测 MQTT 断开事件 → 立即重连
+    if (line.find("+MQTTDISCONNECT") != std::string::npos) {
+        RCLCPP_WARN(get_logger(), "MQTT disconnected by server or network");
+        mqtt_connected_.store(false);
+        // 立即触发重连（异步，避免阻塞串口读取线程）
+        std::thread([this]() { ReconnectMQTT(); }).detach();
+        return;
     }
-  }
+    
+    // 检测 MQTT 连接成功事件（用于更新状态）
+    if (line.find("+MQTTOPEN: OK") != std::string::npos) {
+        mqtt_connected_.store(true);
+        RCLCPP_INFO(get_logger(), "MQTT connection confirmed");
+        return;
+    }
+    
+    // 原有的 JSON 处理逻辑
+    if (line.find('{') != std::string::npos) {
+        try {
+            size_t start = line.find('{');
+            std::string json_str = line.substr(start);
+            auto cmd_json = nlohmann::json::parse(json_str);
+            ProcessCommand(cmd_json);
+        } catch (const std::exception& e) {
+            // 忽略非 JSON 行
+        }
+    }
 }
 
 void CloudUploadNode::ProcessCommand(const nlohmann::json& cmd_json) {

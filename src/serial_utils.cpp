@@ -7,13 +7,20 @@
 #include <cstring>
 #include <iostream>
 #include <chrono>
+#include <thread>
 
 namespace iot_cloud_bridge {
 
+// ============================================================
+//  构造函数 / 析构函数
+// ============================================================
 L610Serial::L610Serial() : fd_(-1), running_(false) {}
 
 L610Serial::~L610Serial() { Close(); }
 
+// ============================================================
+//  打开串口
+// ============================================================
 bool L610Serial::Open(const std::string& port, int baudrate) {
   if (fd_ > 0) Close();
 
@@ -23,31 +30,49 @@ bool L610Serial::Open(const std::string& port, int baudrate) {
     return false;
   }
 
-  // 配置串口
   struct termios options;
   tcgetattr(fd_, &options);
-  cfsetispeed(&options, B115200);
-  cfsetospeed(&options, B115200);
+  
+  // 设置波特率
+  speed_t speed;
+  switch (baudrate) {
+    case 9600:   speed = B9600; break;
+    case 19200:  speed = B19200; break;
+    case 38400:  speed = B38400; break;
+    case 57600:  speed = B57600; break;
+    case 115200: speed = B115200; break;
+    default:     speed = B115200; break;
+  }
+  cfsetispeed(&options, speed);
+  cfsetospeed(&options, speed);
+  
   options.c_cflag |= (CLOCAL | CREAD);
-  options.c_cflag &= ~PARENB;
-  options.c_cflag &= ~CSTOPB;
+  options.c_cflag &= ~PARENB;      // 无校验
+  options.c_cflag &= ~CSTOPB;      // 1位停止位
   options.c_cflag &= ~CSIZE;
-  options.c_cflag |= CS8;
-  options.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
-  options.c_iflag &= ~(IXON | IXOFF | IXANY);
-  options.c_oflag &= ~OPOST;
+  options.c_cflag |= CS8;          // 8位数据位
+  options.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);  // 原始模式
+  options.c_iflag &= ~(IXON | IXOFF | IXANY);          // 禁用软件流控
+  options.c_iflag &= ~(INLCR | ICRNL | IGNCR);         // 禁用换行符转换
+  options.c_oflag &= ~OPOST;       // 原始输出
+  
+  // 设置读取超时
+  options.c_cc[VMIN] = 0;
+  options.c_cc[VTIME] = 10;        // 1秒超时
+  
   tcsetattr(fd_, TCSANOW, &options);
-
-  // 清空缓冲区
   tcflush(fd_, TCIOFLUSH);
 
   running_ = true;
   rx_thread_ = std::thread(&L610Serial::RxLoop, this);
 
-  std::cout << "[L610Serial] Opened " << port << std::endl;
+  std::cout << "[L610Serial] Opened " << port << " at " << baudrate << " baud" << std::endl;
   return true;
 }
 
+// ============================================================
+//  关闭串口
+// ============================================================
 void L610Serial::Close() {
   running_ = false;
   if (rx_thread_.joinable()) {
@@ -59,14 +84,23 @@ void L610Serial::Close() {
   }
 }
 
+// ============================================================
+//  发送数据到串口
+// ============================================================
 void L610Serial::WriteString(const std::string& data) {
   if (fd_ < 0) return;
   ::write(fd_, data.c_str(), data.size());
 }
 
+// ============================================================
+//  发送 AT 指令（单次，无重试）
+// ============================================================
 std::vector<std::string> L610Serial::SendAT(const std::string& cmd, int timeout_ms) {
   std::vector<std::string> responses;
-  if (fd_ < 0) return responses;
+  if (fd_ < 0) {
+    std::cerr << "[L610Serial] SendAT: serial port not open" << std::endl;
+    return responses;
+  }
 
   // 清空队列中已有的残留数据
   {
@@ -95,38 +129,95 @@ std::vector<std::string> L610Serial::SendAT(const std::string& cmd, int timeout_
     // 如果收到 OK 或 ERROR，认为命令结束
     if (line.find("OK") != std::string::npos ||
         line.find("ERROR") != std::string::npos ||
-        line.find("+HMPUB:") != std::string::npos) {
+        line.find("+MQTTOPEN: OK") != std::string::npos ||
+        line.find("+MQTTPUB:") != std::string::npos ||
+        line.find("+MQTTDISCONNECT") != std::string::npos) {
       break;
     }
   }
   return responses;
 }
 
-bool L610Serial::PublishMQTT(const std::string& topic, const std::string& payload, int qos) {
-    // 转义 payload 中的双引号
-    std::string escaped = payload;
-    size_t pos = 0;
-    while ((pos = escaped.find('"', pos)) != std::string::npos) {
-        escaped.replace(pos, 1, "\\\"");
-        pos += 2;
-    }
-
-    // 改成 AT+MQTTPUB，参数顺序：topic,qos,retain,payload
-    std::string cmd = "AT+MQTTPUB=1,\"" + topic + "\"," + std::to_string(qos) + ",0,\"" + escaped + "\"";
-    auto responses = SendAT(cmd, 5000);
+// ============================================================
+//  发送 AT 指令（带自动重试）
+// ============================================================
+std::vector<std::string> L610Serial::SendATWithRetry(const std::string& cmd,
+                                                       int timeout_ms,
+                                                       int retries,
+                                                       int retry_delay_ms) {
+  std::vector<std::string> responses;
+  
+  for (int attempt = 1; attempt <= retries; ++attempt) {
+    responses = SendAT(cmd, timeout_ms);
+    
+    // 检查是否成功
+    bool success = false;
     for (const auto& line : responses) {
-        if (line.find("OK") != std::string::npos ||
-            line.find("+MQTTPUB: 1,1") != std::string::npos) {
-            return true;
-        }
+      if (line.find("OK") != std::string::npos ||
+          line.find("+MQTTOPEN: OK") != std::string::npos ||
+          line.find("+MQTTPUB:") != std::string::npos) {
+        success = true;
+        break;
+      }
     }
-    return false;
+    
+    if (success) {
+      return responses;
+    }
+    
+    // 如果还有重试次数，等待后重试
+    if (attempt < retries) {
+      std::cout << "[L610Serial] Retry " << attempt << "/" << retries 
+                << " for: " << cmd << std::endl;
+      std::this_thread::sleep_for(std::chrono::milliseconds(retry_delay_ms));
+    }
+  }
+  
+  std::cerr << "[L610Serial] All " << retries << " retries failed for: " << cmd << std::endl;
+  return responses;
 }
 
+// ============================================================
+//  MQTT 发布（标准 AT+MQTTPUB 指令）
+// ============================================================
+bool L610Serial::PublishMQTT(const std::string& topic, const std::string& payload, int qos) {
+  // 转义 payload 中的双引号和反斜杠
+  std::string escaped = payload;
+  size_t pos = 0;
+  while ((pos = escaped.find('\\', pos)) != std::string::npos) {
+    escaped.replace(pos, 1, "\\\\");
+    pos += 2;
+  }
+  pos = 0;
+  while ((pos = escaped.find('"', pos)) != std::string::npos) {
+    escaped.replace(pos, 1, "\\\"");
+    pos += 2;
+  }
+
+  // 使用标准 MQTT AT 指令
+  std::string cmd = "AT+MQTTPUB=1,\"" + topic + "\"," + std::to_string(qos) + ",0,\"" + escaped + "\"";
+  auto responses = SendATWithRetry(cmd, 5000, 3, 500);
+  
+  for (const auto& line : responses) {
+    if (line.find("OK") != std::string::npos ||
+        line.find("+MQTTPUB: 1,1") != std::string::npos ||
+        line.find("+MQTTPUB:") != std::string::npos) {
+      return true;
+    }
+  }
+  return false;
+}
+
+// ============================================================
+//  设置下行消息回调
+// ============================================================
 void L610Serial::SetRxCallback(std::function<void(const std::string&)> cb) {
   rx_callback_ = cb;
 }
 
+// ============================================================
+//  串口接收线程（持续读取）
+// ============================================================
 void L610Serial::RxLoop() {
   char buf[1024];
   while (running_) {
