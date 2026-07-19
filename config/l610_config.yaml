@@ -8,3 +8,4 @@
     password: "Broad end"
     emotion_topic: "/emotion/result"
     face_report_interval: 0.067
+    apn: "UNINET"

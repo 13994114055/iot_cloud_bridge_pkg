@@ -44,6 +44,7 @@ private:
   std::queue<std::string> rx_queue_;
   std::mutex queue_mutex_;
   std::condition_variable queue_cv_;
+  std::string leftover_;
   std::function<void(const std::string&)> rx_callback_;
 
   void RxLoop();

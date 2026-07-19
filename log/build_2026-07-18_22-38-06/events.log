@@ -1,0 +1,205 @@
+[0.000000] (-) TimerEvent: {}
+[0.000190] (iot_cloud_bridge_pkg) JobQueued: {'identifier': 'iot_cloud_bridge_pkg', 'dependencies': OrderedDict()}
+[0.000503] (iot_cloud_bridge_pkg) JobStarted: {'identifier': 'iot_cloud_bridge_pkg'}
+[0.011650] (iot_cloud_bridge_pkg) JobProgress: {'identifier': 'iot_cloud_bridge_pkg', 'progress': 'cmake'}
+[0.012934] (iot_cloud_bridge_pkg) Command: {'cmd': ['/usr/bin/cmake', '/home/y2026_7_13/iot_cloud_bridge_pkg', '-DCMAKE_INSTALL_PREFIX=/home/y2026_7_13/iot_cloud_bridge_pkg/install/iot_cloud_bridge_pkg'], 'cwd': '/home/y2026_7_13/iot_cloud_bridge_pkg/build/iot_cloud_bridge_pkg', 'env': OrderedDict([('LESSOPEN', '| /usr/bin/lesspipe %s'), ('USER', 'y2026_7_13'), ('AGENT', '1'), ('GIT_ASKPASS', '/home/y2026_7_13/.vscode-server/bin/8a7abeba6e03ea3af87bfbce9a1b7e48fed567b8/extensions/git/dist/askpass.sh'), ('SHLVL', '2'), ('LD_LIBRARY_PATH', '/opt/ros/humble/opt/rviz_ogre_vendor/lib:/opt/ros/humble/lib/x86_64-linux-gnu:/opt/ros/humble/lib'), ('HOME', '/home/y2026_7_13'), ('OLDPWD', '/home/y2026_7_13/iot_cloud_bridge_pkg'), ('TERM_PROGRAM_VERSION', '1.129.1'), ('VSCODE_IPC_HOOK_CLI', '/run/user/1000/vscode-ipc-ca210462-6298-4533-8cf7-6a8e0b5c290a.sock'), ('ROS_PYTHON_VERSION', '3'), ('VSCODE_GIT_ASKPASS_MAIN', '/home/y2026_7_13/.vscode-server/bin/8a7abeba6e03ea3af87bfbce9a1b7e48fed567b8/extensions/git/dist/askpass-main.js'), ('VSCODE_GIT_ASKPASS_NODE', '/home/y2026_7_13/.vscode-server/bin/8a7abeba6e03ea3af87bfbce9a1b7e48fed567b8/node'), ('VSCODE_PYTHON_AUTOACTIVATE_GUARD', '1'), ('DBUS_SESSION_BUS_ADDRESS', 'unix:path=/run/user/1000/bus'), ('COLORTERM', 'truecolor'), ('WSL_DISTRO_NAME', 'Ubuntu-22.04'), ('WAYLAND_DISPLAY', 'wayland-0'), ('COLCON_PREFIX_PATH', '/home/y2026_7_13/ros2_ws/install'), ('ROS_DISTRO', 'humble'), ('LOGNAME', 'y2026_7_13'), ('NAME', 'CLAPTOP'), ('WSL_INTEROP', '/run/WSL/1725_interop'), ('PULSE_SERVER', 'unix:/mnt/wslg/PulseServer'), ('_', '/usr/bin/colcon'), ('ROS_VERSION', '2'), ('TERM', 'xterm-256color'), ('ROS_LOCALHOST_ONLY', '0'), ('OPENCODE', '1'), ('PATH', '/home/y2026_7_13/.vscode-server/data/User/globalStorage/github.copilot-chat/debugCommand:/home/y2026_7_13/.vscode-server/data/User/globalStorage/github.copilot-chat/copilotCli:/home/y2026_7_13/.vscode-server/bin/8a7abeba6e03ea3af87bfbce9a1b7e48fed567b8/bin/remote-cli:/opt/ros/humble/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/lib/wsl/lib:/mnt/c/Program Files (x86)/VMware/VMware Workstation/bin/:/mnt/c/ProgramData/Oracle/Java/javapath:/mnt/c/WINDOWS/system32:/mnt/c/WINDOWS:/mnt/c/WINDOWS/System32/Wbem:/mnt/c/WINDOWS/System32/WindowsPowerShell/v1.0/:/mnt/c/WINDOWS/System32/OpenSSH/:/mnt/c/Program Files (x86)/NVIDIA Corporation/PhysX/Common:/mnt/c/Program Files/dotnet/:/mnt/c/Program Files (x86)/Microsoft SQL Server/100/Tools/Binn/:/mnt/c/Program Files/Microsoft SQL Server/100/Tools/Binn/:/mnt/c/Program Files/Microsoft SQL Server/100/DTS/Binn/:/mnt/d/Node/:/mnt/d/Android/Sdk/platform-tools:/mnt/d/Android/Sdk/emulator:/mnt/d/Android/Sdk/tools:/mnt/d/Android/Sdk/tools/bin:/mnt/c/Users/ASUS/Desktop/backSoftware/backSoftware/Tomcat/apache-tomcat-9.0.50-windows-x64/apache-tomcat-9.0.50/lib:/mnt/c/Users/ASUS/Desktop/backSoftware/backSoftware/Tomcat/apache-tomcat-9.0.50-windows-x64/apache-tomcat-9.0.50/bin:/mnt/d/VIVO TOOLS/pcsuite/:/mnt/c/Program Files/NVIDIA Corporation/NVIDIA App/NvDLISR:/mnt/c/Program Files (x86)/IVI Foundation/VISA/WinNT/Bin/:/mnt/c/Program Files/IVI Foundation/VISA/Win64/Bin/:/mnt/c/Program Files (x86)/IVI Foundation/VISA/WinNT/Bin:/mnt/c/Users/ASUS/AppData/Local/Microsoft/WindowsApps:/mnt/d/VSCode/Microsoft VS Code/bin:/mnt/c/Users/ASUS/AppData/Roaming/npm:/mnt/c/Users/ASUS/AppData/Local/GitHubDesktop/bin:/snap/bin'), ('XDG_RUNTIME_DIR', '/run/user/1000'), ('DISPLAY', ':0'), ('OPENCODE_PID', '42404'), ('LANG', 'en_US.UTF-8'), ('LS_COLORS', 'rs=0:di=01;34:ln=01;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:mi=00:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arc=01;31:*.arj=01;31:*.taz=01;31:*.lha=01;31:*.lz4=01;31:*.lzh=01;31:*.lzma=01;31:*.tlz=01;31:*.txz=01;31:*.tzo=01;31:*.t7z=01;31:*.zip=01;31:*.z=01;31:*.dz=01;31:*.gz=01;31:*.lrz=01;31:*.lz=01;31:*.lzo=01;31:*.xz=01;31:*.zst=01;31:*.tzst=01;31:*.bz2=01;31:*.bz=01;31:*.tbz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.war=01;31:*.ear=01;31:*.sar=01;31:*.rar=01;31:*.alz=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.cab=01;31:*.wim=01;31:*.swm=01;31:*.dwm=01;31:*.esd=01;31:*.jpg=01;35:*.jpeg=01;35:*.mjpg=01;35:*.mjpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.webm=01;35:*.webp=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.cgm=01;35:*.emf=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=00;36:*.au=00;36:*.flac=00;36:*.m4a=00;36:*.mid=00;36:*.midi=00;36:*.mka=00;36:*.mp3=00;36:*.mpc=00;36:*.ogg=00;36:*.ra=00;36:*.wav=00;36:*.oga=00;36:*.opus=00;36:*.spx=00;36:*.xspf=00;36:'), ('VSCODE_GIT_IPC_HANDLE', '/run/user/1000/vscode-git-9ffdc12fc3.sock'), ('TERM_PROGRAM', 'vscode'), ('AMENT_PREFIX_PATH', '/home/y2026_7_13/ros2_ws/install/robot_display:/opt/ros/humble'), ('SHELL', '/bin/bash'), ('LESSCLOSE', '/usr/bin/lesspipe %s %s'), ('OPENCODE_DISABLE_AUTOUPDATE', '1'), ('VSCODE_GIT_ASKPASS_EXTRA_ARGS', ''), ('PWD', '/home/y2026_7_13/iot_cloud_bridge_pkg/build/iot_cloud_bridge_pkg'), ('COPILOT_DEBUG_NONCE', 'a57deb16e4b1e7b30eb2c2d087a913bc'), ('XDG_DATA_DIRS', '/usr/local/share:/usr/share:/var/lib/snapd/desktop'), ('PYTHONPATH', '/home/y2026_7_13/ros2_ws/install/robot_display/lib/python3.10/site-packages:/opt/ros/humble/lib/python3.10/site-packages:/opt/ros/humble/local/lib/python3.10/dist-packages'), ('COLCON', '1'), ('WSL2_GUI_APPS_ENABLED', '1'), ('HOSTTYPE', 'x86_64'), ('WSLENV', 'VSCODE_WSL_EXT_LOCATION/up:VSCODE_SERVER_TAR/up'), ('CMAKE_PREFIX_PATH', '/home/y2026_7_13/ros2_ws/install/robot_display:/opt/ros/humble')]), 'shell': False}
+[0.099464] (-) TimerEvent: {}
+[0.199797] (-) TimerEvent: {}
+[0.300079] (-) TimerEvent: {}
+[0.341904] (iot_cloud_bridge_pkg) StdoutLine: {'line': b'-- The C compiler identification is GNU 11.4.0\n'}
+[0.400178] (-) TimerEvent: {}
+[0.500365] (-) TimerEvent: {}
+[0.600578] (-) TimerEvent: {}
+[0.700806] (-) TimerEvent: {}
+[0.801015] (-) TimerEvent: {}
+[0.901228] (-) TimerEvent: {}
+[1.001504] (-) TimerEvent: {}
+[1.101853] (-) TimerEvent: {}
+[1.202524] (-) TimerEvent: {}
+[1.236990] (iot_cloud_bridge_pkg) StdoutLine: {'line': b'-- The CXX compiler identification is GNU 11.4.0\n'}
+[1.302647] (-) TimerEvent: {}
+[1.402927] (-) TimerEvent: {}
+[1.503195] (-) TimerEvent: {}
+[1.603742] (-) TimerEvent: {}
+[1.704089] (-) TimerEvent: {}
+[1.804608] (-) TimerEvent: {}
+[1.870067] (iot_cloud_bridge_pkg) StdoutLine: {'line': b'-- Detecting C compiler ABI info\n'}
+[1.904742] (-) TimerEvent: {}
+[2.005255] (-) TimerEvent: {}
+[2.076047] (iot_cloud_bridge_pkg) StdoutLine: {'line': b'-- Detecting C compiler ABI info - done\n'}
+[2.080662] (iot_cloud_bridge_pkg) StdoutLine: {'line': b'-- Check for working C compiler: /usr/bin/cc - skipped\n'}
+[2.081625] (iot_cloud_bridge_pkg) StdoutLine: {'line': b'-- Detecting C compile features\n'}
+[2.082340] (iot_cloud_bridge_pkg) StdoutLine: {'line': b'-- Detecting C compile features - done\n'}
+[2.085671] (iot_cloud_bridge_pkg) StdoutLine: {'line': b'-- Detecting CXX compiler ABI info\n'}
+[2.105436] (-) TimerEvent: {}
+[2.206116] (-) TimerEvent: {}
+[2.305656] (iot_cloud_bridge_pkg) StdoutLine: {'line': b'-- Detecting CXX compiler ABI info - done\n'}
+[2.306234] (-) TimerEvent: {}
+[2.311012] (iot_cloud_bridge_pkg) StdoutLine: {'line': b'-- Check for working CXX compiler: /usr/bin/c++ - skipped\n'}
+[2.311352] (iot_cloud_bridge_pkg) StdoutLine: {'line': b'-- Detecting CXX compile features\n'}
+[2.311623] (iot_cloud_bridge_pkg) StdoutLine: {'line': b'-- Detecting CXX compile features - done\n'}
+[2.326505] (iot_cloud_bridge_pkg) StdoutLine: {'line': b'-- Found ament_cmake: 1.3.14 (/opt/ros/humble/share/ament_cmake/cmake)\n'}
+[2.406753] (-) TimerEvent: {}
+[2.442938] (iot_cloud_bridge_pkg) StdoutLine: {'line': b'-- Found Python3: /usr/bin/python3 (found version "3.10.12") found components: Interpreter \n'}
+[2.507242] (-) TimerEvent: {}
+[2.534678] (iot_cloud_bridge_pkg) StdoutLine: {'line': b'-- Found rclcpp: 16.0.19 (/opt/ros/humble/share/rclcpp/cmake)\n'}
+[2.607482] (-) TimerEvent: {}
+[2.707912] (-) TimerEvent: {}
+[2.808268] (-) TimerEvent: {}
+[2.827981] (iot_cloud_bridge_pkg) StdoutLine: {'line': b'-- Found rosidl_generator_c: 3.1.9 (/opt/ros/humble/share/rosidl_generator_c/cmake)\n'}
+[2.833728] (iot_cloud_bridge_pkg) StdoutLine: {'line': b'-- Found rosidl_adapter: 3.1.9 (/opt/ros/humble/share/rosidl_adapter/cmake)\n'}
+[2.844967] (iot_cloud_bridge_pkg) StdoutLine: {'line': b'-- Found rosidl_generator_cpp: 3.1.9 (/opt/ros/humble/share/rosidl_generator_cpp/cmake)\n'}
+[2.861450] (iot_cloud_bridge_pkg) StdoutLine: {'line': b'-- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c\n'}
+[2.880877] (iot_cloud_bridge_pkg) StdoutLine: {'line': b'-- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp\n'}
+[2.908478] (-) TimerEvent: {}
+[2.938260] (iot_cloud_bridge_pkg) StdoutLine: {'line': b'-- Found rmw_implementation_cmake: 6.1.2 (/opt/ros/humble/share/rmw_implementation_cmake/cmake)\n'}
+[2.942413] (iot_cloud_bridge_pkg) StdoutLine: {'line': b'-- Found rmw_fastrtps_cpp: 6.2.10 (/opt/ros/humble/share/rmw_fastrtps_cpp/cmake)\n'}
+[3.008766] (-) TimerEvent: {}
+[3.109256] (-) TimerEvent: {}
+[3.209794] (-) TimerEvent: {}
+[3.310077] (-) TimerEvent: {}
+[3.410493] (-) TimerEvent: {}
+[3.511052] (-) TimerEvent: {}
+[3.611493] (-) TimerEvent: {}
+[3.711990] (-) TimerEvent: {}
+[3.812688] (-) TimerEvent: {}
+[3.913061] (-) TimerEvent: {}
+[4.013636] (-) TimerEvent: {}
+[4.113996] (-) TimerEvent: {}
+[4.214195] (-) TimerEvent: {}
+[4.314528] (-) TimerEvent: {}
+[4.414956] (-) TimerEvent: {}
+[4.515582] (-) TimerEvent: {}
+[4.615960] (-) TimerEvent: {}
+[4.716543] (-) TimerEvent: {}
+[4.817124] (-) TimerEvent: {}
+[4.917575] (-) TimerEvent: {}
+[5.018134] (-) TimerEvent: {}
+[5.115050] (iot_cloud_bridge_pkg) StdoutLine: {'line': b'-- Found OpenSSL: /usr/lib/x86_64-linux-gnu/libcrypto.so (found version "3.0.2")  \n'}
+[5.118249] (-) TimerEvent: {}
+[5.218406] (-) TimerEvent: {}
+[5.318775] (-) TimerEvent: {}
+[5.419247] (-) TimerEvent: {}
+[5.519883] (-) TimerEvent: {}
+[5.620334] (-) TimerEvent: {}
+[5.720935] (-) TimerEvent: {}
+[5.821495] (-) TimerEvent: {}
+[5.922064] (-) TimerEvent: {}
+[6.022751] (-) TimerEvent: {}
+[6.122960] (-) TimerEvent: {}
+[6.223291] (-) TimerEvent: {}
+[6.323590] (-) TimerEvent: {}
+[6.423922] (-) TimerEvent: {}
+[6.524591] (-) TimerEvent: {}
+[6.624803] (-) TimerEvent: {}
+[6.725019] (-) TimerEvent: {}
+[6.825354] (-) TimerEvent: {}
+[6.925973] (-) TimerEvent: {}
+[7.026593] (-) TimerEvent: {}
+[7.127209] (-) TimerEvent: {}
+[7.227835] (-) TimerEvent: {}
+[7.328450] (-) TimerEvent: {}
+[7.429073] (-) TimerEvent: {}
+[7.529846] (-) TimerEvent: {}
+[7.606464] (iot_cloud_bridge_pkg) StdoutLine: {'line': b'-- Found FastRTPS: /opt/ros/humble/include  \n'}
+[7.630023] (-) TimerEvent: {}
+[7.730649] (-) TimerEvent: {}
+[7.831225] (-) TimerEvent: {}
+[7.931832] (-) TimerEvent: {}
+[8.032543] (-) TimerEvent: {}
+[8.133127] (-) TimerEvent: {}
+[8.233719] (-) TimerEvent: {}
+[8.334487] (-) TimerEvent: {}
+[8.435120] (-) TimerEvent: {}
+[8.535744] (-) TimerEvent: {}
+[8.636389] (-) TimerEvent: {}
+[8.736993] (-) TimerEvent: {}
+[8.837432] (-) TimerEvent: {}
+[8.938029] (-) TimerEvent: {}
+[9.038570] (-) TimerEvent: {}
+[9.143054] (-) TimerEvent: {}
+[9.243312] (-) TimerEvent: {}
+[9.343891] (-) TimerEvent: {}
+[9.447832] (-) TimerEvent: {}
+[9.549055] (-) TimerEvent: {}
+[9.653339] (-) TimerEvent: {}
+[9.756321] (-) TimerEvent: {}
+[9.859562] (-) TimerEvent: {}
+[9.963923] (-) TimerEvent: {}
+[10.064200] (-) TimerEvent: {}
+[10.164461] (-) TimerEvent: {}
+[10.265274] (-) TimerEvent: {}
+[10.365747] (-) TimerEvent: {}
+[10.466077] (-) TimerEvent: {}
+[10.566902] (-) TimerEvent: {}
+[10.667641] (-) TimerEvent: {}
+[10.771730] (-) TimerEvent: {}
+[10.874404] (-) TimerEvent: {}
+[10.978731] (-) TimerEvent: {}
+[11.083088] (-) TimerEvent: {}
+[11.187335] (-) TimerEvent: {}
+[11.291532] (-) TimerEvent: {}
+[11.395773] (-) TimerEvent: {}
+[11.500015] (-) TimerEvent: {}
+[11.604272] (-) TimerEvent: {}
+[11.708375] (-) TimerEvent: {}
+[11.812497] (-) TimerEvent: {}
+[11.916858] (-) TimerEvent: {}
+[12.021134] (-) TimerEvent: {}
+[12.125447] (-) TimerEvent: {}
+[12.194860] (iot_cloud_bridge_pkg) StdoutLine: {'line': b"-- Using RMW implementation 'rmw_fastrtps_cpp' as default\n"}
+[12.207782] (iot_cloud_bridge_pkg) StdoutLine: {'line': b'-- Looking for pthread.h\n'}
+[12.226201] (-) TimerEvent: {}
+[12.330554] (-) TimerEvent: {}
+[12.427655] (iot_cloud_bridge_pkg) StdoutLine: {'line': b'-- Looking for pthread.h - found\n'}
+[12.427916] (iot_cloud_bridge_pkg) StdoutLine: {'line': b'-- Performing Test CMAKE_HAVE_LIBC_PTHREAD\n'}
+[12.430780] (-) TimerEvent: {}
+[12.533428] (-) TimerEvent: {}
+[12.636224] (iot_cloud_bridge_pkg) StdoutLine: {'line': b'-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success\n'}
+[12.636343] (-) TimerEvent: {}
+[12.637092] (iot_cloud_bridge_pkg) StdoutLine: {'line': b'-- Found Threads: TRUE  \n'}
+[12.701103] (iot_cloud_bridge_pkg) StdoutLine: {'line': b'-- Found sensor_msgs: 4.9.1 (/opt/ros/humble/share/sensor_msgs/cmake)\n'}
+[12.737194] (-) TimerEvent: {}
+[12.839377] (-) TimerEvent: {}
+[12.939924] (-) TimerEvent: {}
+[13.040070] (-) TimerEvent: {}
+[13.140213] (-) TimerEvent: {}
+[13.240377] (-) TimerEvent: {}
+[13.340552] (-) TimerEvent: {}
+[13.440699] (-) TimerEvent: {}
+[13.540865] (-) TimerEvent: {}
+[13.641018] (-) TimerEvent: {}
+[13.741169] (-) TimerEvent: {}
+[13.841357] (-) TimerEvent: {}
+[13.941505] (-) TimerEvent: {}
+[14.041666] (-) TimerEvent: {}
+[14.141813] (-) TimerEvent: {}
+[14.241968] (-) TimerEvent: {}
+[14.342123] (-) TimerEvent: {}
+[14.442320] (-) TimerEvent: {}
+[14.542510] (-) TimerEvent: {}
+[14.642709] (-) TimerEvent: {}
+[14.742908] (-) TimerEvent: {}
+[14.830848] (iot_cloud_bridge_pkg) StderrLine: {'line': b'CMake Error at CMakeLists.txt:13 (find_package):\n'}
+[14.831048] (iot_cloud_bridge_pkg) StderrLine: {'line': b'  By not providing "Findemotion_msgs.cmake" in CMAKE_MODULE_PATH this project\n'}
+[14.831174] (iot_cloud_bridge_pkg) StderrLine: {'line': b'  has asked CMake to find a package configuration file provided by\n'}
+[14.831228] (iot_cloud_bridge_pkg) StderrLine: {'line': b'  "emotion_msgs", but CMake did not find one.\n'}
+[14.831274] (iot_cloud_bridge_pkg) StderrLine: {'line': b'\n'}
+[14.831318] (iot_cloud_bridge_pkg) StderrLine: {'line': b'  Could not find a package configuration file provided by "emotion_msgs" with\n'}
+[14.831363] (iot_cloud_bridge_pkg) StderrLine: {'line': b'  any of the following names:\n'}
+[14.831405] (iot_cloud_bridge_pkg) StderrLine: {'line': b'\n'}
+[14.831447] (iot_cloud_bridge_pkg) StderrLine: {'line': b'    emotion_msgsConfig.cmake\n'}
+[14.831488] (iot_cloud_bridge_pkg) StderrLine: {'line': b'    emotion_msgs-config.cmake\n'}
+[14.831528] (iot_cloud_bridge_pkg) StderrLine: {'line': b'\n'}
+[14.831567] (iot_cloud_bridge_pkg) StderrLine: {'line': b'  Add the installation prefix of "emotion_msgs" to CMAKE_PREFIX_PATH or set\n'}
+[14.831606] (iot_cloud_bridge_pkg) StderrLine: {'line': b'  "emotion_msgs_DIR" to a directory containing one of the above files.  If\n'}
+[14.831646] (iot_cloud_bridge_pkg) StderrLine: {'line': b'  "emotion_msgs" provides a separate development package or SDK, be sure it\n'}
+[14.831686] (iot_cloud_bridge_pkg) StderrLine: {'line': b'  has been installed.\n'}
+[14.831726] (iot_cloud_bridge_pkg) StderrLine: {'line': b'\n'}
+[14.831766] (iot_cloud_bridge_pkg) StderrLine: {'line': b'\n'}
+[14.831805] (iot_cloud_bridge_pkg) StdoutLine: {'line': b'-- Configuring incomplete, errors occurred!\n'}
+[14.831850] (iot_cloud_bridge_pkg) StdoutLine: {'line': b'See also "/home/y2026_7_13/iot_cloud_bridge_pkg/build/iot_cloud_bridge_pkg/CMakeFiles/CMakeOutput.log".\n'}
+[14.838077] (iot_cloud_bridge_pkg) CommandEnded: {'returncode': 1}
+[14.843046] (-) TimerEvent: {}
+[14.866463] (iot_cloud_bridge_pkg) JobEnded: {'identifier': 'iot_cloud_bridge_pkg', 'rc': 1}
+[14.876962] (-) EventReactorShutdown: {}

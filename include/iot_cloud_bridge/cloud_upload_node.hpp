@@ -11,6 +11,7 @@
 #include <mutex>
 #include <atomic>
 #include <chrono>
+#include <nlohmann/json.hpp>
 
 #include "iot_cloud_bridge/serial_utils.hpp"
 
@@ -29,12 +30,16 @@ private:
   std::string broker_;
   std::string port_;
   std::string password_;
+  std::string apn_;
+    std::string operator_name_;
   std::string emotion_topic_;
   std::atomic<bool> reconnecting_{false};
   double face_interval_;
 
   // ---- 串口对象 ----
   L610Serial l610_;
+
+  std::atomic<bool> mqtt_connected_{false};
 
   // ---- 订阅 ----
   rclcpp::Subscription<emotion_msgs::msg::EmotionResult>::SharedPtr emotion_sub_;
@@ -54,10 +59,11 @@ private:
 
   // ---- 时间记录 ----
   std::chrono::steady_clock::time_point last_face_time_;
+  std::chrono::steady_clock::time_point last_keepalive_check_;
 
   // ---- 线程控制 ----
-  std::thread cmd_thread_;
   std::atomic<bool> running_;
+  std::mutex reconnect_mutex_;
 
   // ---- 回调函数 ----
   void OnEmotion(const emotion_msgs::msg::EmotionResult::SharedPtr msg);
@@ -75,14 +81,19 @@ private:
   // ---- 命令处理 ----
   void HandleIncomingLine(const std::string& line);
   void ProcessCommand(const nlohmann::json& cmd_json);
+  void ReconnectMQTT();
 
   // ---- 连接华为云 ----
   bool ConnectHuaweiCloud();
+
+  // ---- 保活检测 ----
+  void CheckKeepAlive();
 
   // ---- 辅助 ----
   std::string EmotionLabelToString(int label);
 
   rclcpp::TimerBase::SharedPtr timer_;
+  rclcpp::TimerBase::SharedPtr keepalive_timer_;
 };
 
 }  // namespace iot_cloud_bridge

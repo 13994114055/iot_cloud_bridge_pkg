@@ -11,7 +11,7 @@ def generate_launch_description():
             description='Path to config yaml file'
         ),
         Node(
-            package='iot_cloud_bridge_cpp',
+            package='iot_cloud_bridge_pkg',
             executable='cloud_upload_node',
             name='cloud_upload_node',
             output='screen',
