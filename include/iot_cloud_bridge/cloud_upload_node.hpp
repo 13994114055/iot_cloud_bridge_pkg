@@ -88,12 +88,14 @@ private:
 
   // ---- 保活检测 ----
   void CheckKeepAlive();
+  void SendHeartbeat();
 
   // ---- 辅助 ----
   std::string EmotionLabelToString(int label);
 
   rclcpp::TimerBase::SharedPtr timer_;
   rclcpp::TimerBase::SharedPtr keepalive_timer_;
+  rclcpp::TimerBase::SharedPtr heartbeat_timer_;
 };
 
 }  // namespace iot_cloud_bridge

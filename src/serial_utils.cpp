@@ -131,6 +131,7 @@ std::vector<std::string> L610Serial::SendAT(const std::string& cmd, int timeout_
         line.find("ERROR") != std::string::npos ||
         line.find("+MQTTOPEN: OK") != std::string::npos ||
         line.find("+MQTTPUB:") != std::string::npos ||
+        line.find("+MQTTCONN:") != std::string::npos ||
         line.find("+MQTTDISCONNECT") != std::string::npos) {
       break;
     }
@@ -155,7 +156,8 @@ std::vector<std::string> L610Serial::SendATWithRetry(const std::string& cmd,
     for (const auto& line : responses) {
       if (line.find("OK") != std::string::npos ||
           line.find("+MQTTOPEN: OK") != std::string::npos ||
-          line.find("+MQTTPUB:") != std::string::npos) {
+          line.find("+MQTTPUB:") != std::string::npos ||
+          line.find("+MQTTCONN:") != std::string::npos) {
         success = true;
         break;
       }

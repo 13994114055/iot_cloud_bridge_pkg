@@ -8,6 +8,7 @@
 #include <chrono>
 #include <openssl/hmac.h>      // 新增：用于 HMAC‑SHA256
 #include <thread>
+#include <sys/time.h>
 
 // ---- Base64 编码（保留备用，暂未使用） ----
 static const std::string base64_chars =
@@ -47,8 +48,8 @@ std::string Base64Encode(const unsigned char* data, size_t len) {
     return ret;
 }
 
-// ---- HMAC‑SHA256 辅助函数（新增） ----
-std::string hmac_sha256(const std::string& key, const std::string& data) {
+// ---- HMAC‑SHA256 辅助函数（输出 hex 格式） ----
+std::string hmac_sha256_hex(const std::string& key, const std::string& data) {
     unsigned char result[EVP_MAX_MD_SIZE];
     unsigned int len = 0;
     HMAC(EVP_sha256(), key.c_str(), key.size(),
@@ -186,6 +187,11 @@ CloudUploadNode::CloudUploadNode(const rclcpp::NodeOptions& options)
         std::chrono::milliseconds(10000),
         std::bind(&CloudUploadNode::CheckKeepAlive, this));
 
+    // ---- MQTT 心跳定时器（每 30 秒向平台发布空消息保持在线） ----
+    heartbeat_timer_ = create_wall_timer(
+        std::chrono::milliseconds(30000),
+        std::bind(&CloudUploadNode::SendHeartbeat, this));
+
     RCLCPP_INFO(get_logger(), "CloudUploadNode initialized");
 }
 
@@ -214,10 +220,6 @@ bool CloudUploadNode::ConnectHuaweiCloud() {
     // ---- 3. 检查网络注册 ----
     for (const auto& l : l610_.SendATWithRetry("AT+CREG?", 2000, 1, 500))
         RCLCPP_INFO(get_logger(), "[CREG] %s", l.c_str());
-
-    // ---- 查运营商 ----
-    for (const auto& l : l610_.SendATWithRetry("AT+COPS?", 3000, 1, 500))
-        RCLCPP_INFO(get_logger(), "[COPS] %s", l.c_str());
 
     // ---- 配置 APN ----
     RCLCPP_INFO(get_logger(), "Configuring APN...");
@@ -264,32 +266,81 @@ bool CloudUploadNode::ConnectHuaweiCloud() {
         return false;
     }
 
+    // ---- 从基站同步系统时钟（最多重试 3 次，失败则终止）----
+    bool time_synced = false;
+    for (int i = 1; i <= 3; ++i) {
+        auto time_resp = l610_.SendAT("AT+CCLK?", 3000);
+        for (const auto& l : time_resp) {
+            RCLCPP_INFO(get_logger(), "[TIME] %s", l.c_str());
+            if (l.find("+CCLK:") != std::string::npos) {
+                // 解析格式: +CCLK: "26/07/19,19:27:49+00"
+                size_t q1 = l.find('"');
+                size_t q2 = l.rfind('"');
+                if (q1 == std::string::npos || q2 == std::string::npos || q1 == q2) continue;
+                std::string ts = l.substr(q1 + 1, q2 - q1 - 1);
+                int yr = 0, mo = 0, dy = 0, hr = 0, mn = 0, sc = 0;
+                if (sscanf(ts.c_str(), "%d/%d/%d,%d:%d:%d", &yr, &mo, &dy, &hr, &mn, &sc) == 6) {
+                    struct tm t = {};
+                    t.tm_year = (yr < 100 ? yr + 100 : yr);  // 0-99 -> 100-199 (2000-2099)
+                    t.tm_mon = mo - 1;
+                    t.tm_mday = dy;
+                    t.tm_hour = hr;
+                    t.tm_min = mn;
+                    t.tm_sec = sc;
+                    t.tm_isdst = 0;
+                    time_t epoch = timegm(&t);
+                    if (epoch > 0) {
+                        struct timeval tv = {epoch, 0};
+                        settimeofday(&tv, NULL);
+                        RCLCPP_INFO(get_logger(), "[TIME] synced to UTC: %04d-%02d-%02d %02d:%02d:%02d",
+                                    1900 + t.tm_year, t.tm_mon + 1, t.tm_mday,
+                                    t.tm_hour, t.tm_min, t.tm_sec);
+                        time_synced = true;
+                    }
+                }
+            }
+        }
+        if (time_synced) break;
+        RCLCPP_WARN(get_logger(), "[TIME] sync failed (attempt %d/3)", i);
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    }
+    if (!time_synced) {
+        RCLCPP_ERROR(get_logger(), "[TIME] failed after 3 retries, aborting");
+        return false;
+    }
+
     // ---- 生成时间戳和 ClientID ----
-    std::string timestamp = std::to_string(std::time(nullptr));
+    auto t = std::time(nullptr);
+    std::tm* gmt = std::gmtime(&t);
+    char buf[16];
+    std::strftime(buf, sizeof(buf), "%Y%m%d%H", gmt);
+    std::string timestamp(buf);
     std::string client_id = device_id_ + "_0_0_" + timestamp;
     std::string username = device_id_;
 
-    // ---- 计算动态密码 ----
-    std::string dynamic_password = hmac_sha256(password_, timestamp);
-    RCLCPP_DEBUG(get_logger(), "Dynamic password computed");
+    // ---- 计算动态密码（hmac_sha256_hex(key=timestamp, data=password) -> hex 输出） ----
+    std::string dynamic_password = hmac_sha256_hex(timestamp, password_);
+    RCLCPP_INFO(get_logger(), "[AUTH] timestamp=%s password=%s", timestamp.c_str(), dynamic_password.c_str());
 
-    // ---- 11. AT+MQTTUSER ----
-    std::string cmd1 = "AT+MQTTUSER=1,\"" + username + "\",\"" + dynamic_password + "\",\"" + client_id + "\"";
-    auto resp1 = l610_.SendATWithRetry(cmd1, 5000, 3, 1000);
+    // ---- 11. AT+MQTTUSER（先设凭据）----
+    std::string user_cmd = "AT+MQTTUSER=1,\"" + username + "\",\"" + dynamic_password + "\",\"" + client_id + "\"";
+    auto user_resp = l610_.SendATWithRetry(user_cmd, 5000, 3, 1000);
     bool mqttuser_ok = false;
-    for (const auto& l : resp1) {
+    for (const auto& l : user_resp) {
         RCLCPP_INFO(get_logger(), "[MQTTUSER] %s", l.c_str());
         if (l.find("OK") != std::string::npos) mqttuser_ok = true;
     }
     if (!mqttuser_ok) { RCLCPP_ERROR(get_logger(), "AT+MQTTUSER failed"); return false; }
 
-    // ---- 12. AT+MQTTOPEN（异步命令）----
-    int ssl_mode = (port_ == "8883") ? 1 : 0;
-    std::string cmd2 = "AT+MQTTOPEN=1,\"" + broker_ + "\"," + port_ + "," + std::to_string(ssl_mode) + ",120";
+    std::this_thread::sleep_for(std::chrono::milliseconds(4000));  // 等模块存储凭据
+
+    // ---- 12. AT+MQTTOPEN（开 TCP + MQTT CONNECT）----
+    int ssl_mode = 1;  // 强制 SSL，华为云设备认证需要
+    std::string open_cmd = "AT+MQTTOPEN=1,\"" + broker_ + "\"," + port_ + "," + std::to_string(ssl_mode) + ",120";
     RCLCPP_INFO(get_logger(), "Opening MQTT to %s:%s (ssl=%d)", broker_.c_str(), port_.c_str(), ssl_mode);
 
     mqtt_connected_.store(false);
-    for (const auto& l : l610_.SendAT(cmd2, 10000))
+    for (const auto& l : l610_.SendAT(open_cmd, 10000))
         RCLCPP_INFO(get_logger(), "[MQTTOPEN_RAW] %s", l.c_str());
 
     // 等待异步 +MQTTOPEN: URC（最多 35 秒）
@@ -337,6 +388,20 @@ void CloudUploadNode::CheckKeepAlive() {
         RCLCPP_WARN(get_logger(), "MQTT not connected, attempting reconnect...");
         ReconnectMQTT();
     }
+}
+
+// ============================================================
+//  心跳上报（保持华为云平台在线状态）
+// ============================================================
+void CloudUploadNode::SendHeartbeat() {
+    if (!mqtt_connected_.load()) return;
+
+    nlohmann::json payload;
+    payload["type"] = "heartbeat";
+    payload["timestamp"] = std::time(nullptr);
+
+    std::string topic = "/v1/" + device_id_ + "/user/report";
+    PublishToCloud(payload, topic);
 }
 
 // ============================================================
@@ -454,7 +519,7 @@ void CloudUploadNode::SendChatData(const std::string& type,
     payload["last_other"] = last_other;
     payload["timestamp"] = std::time(nullptr);
 
-    std::string topic = "/v1/" + device_id_ + "/user/chat";
+    std::string topic = "/v1/" + device_id_ + "/user/response";
     PublishToCloud(payload, topic);
 }
 
@@ -463,12 +528,30 @@ void CloudUploadNode::SendChatData(const std::string& type,
 // ============================================================
 void CloudUploadNode::PublishToCloud(const nlohmann::json& payload, const std::string& topic) {
     std::string json_str = payload.dump();
-    if (l610_.PublishMQTT(topic, json_str, 1)) {
+    // 转义双引号和反斜杠
+    std::string escaped = json_str;
+    size_t pos = 0;
+    while ((pos = escaped.find('\\', pos)) != std::string::npos) {
+        escaped.replace(pos, 1, "\\\\"); pos += 2;
+    }
+    pos = 0;
+    while ((pos = escaped.find('"', pos)) != std::string::npos) {
+        escaped.replace(pos, 1, "\\\""); pos += 2;
+    }
+    std::string cmd = "AT+MQTTPUB=1,\"" + topic + "\",1,0,\"" + escaped + "\"";
+    auto resp = l610_.SendATWithRetry(cmd, 5000, 2, 500);
+    bool ok = false;
+    for (const auto& l : resp) {
+        RCLCPP_INFO(get_logger(), "[PUB_RAW] %s", l.c_str());
+        if (l.find("OK") != std::string::npos ||
+            l.find("+MQTTPUB:") != std::string::npos)
+            ok = true;
+    }
+    if (ok)
         RCLCPP_DEBUG(get_logger(), "Published to %s", topic.c_str());
-    } else {
+    else
         RCLCPP_WARN(get_logger(), "Failed to publish to %s (payload len=%zu)",
                     topic.c_str(), json_str.size());
-    }
 }
 
 // ============================================================
@@ -483,10 +566,15 @@ void CloudUploadNode::HandleIncomingLine(const std::string& line) {
     }
 
     if (line.find("+MQTTOPEN:") != std::string::npos) {
-        if (line.find("OK") != std::string::npos ||
-            line.find(",0") != std::string::npos) {
+        if (line.find("+MQTTOPEN: 1,1") != std::string::npos) {
+            // 1,1 = MQTT CONNECT 成功，设备已上线
             mqtt_connected_.store(true);
-            RCLCPP_INFO(get_logger(), "MQTT connection confirmed: %s", line.c_str());
+            RCLCPP_INFO(get_logger(), "MQTT fully connected: %s", line.c_str());
+        } else if (line.find("+MQTTOPEN: 1,0") != std::string::npos) {
+            // 1,0 = TCP 建连，MQTT CONNECT 进行中，继续等
+            RCLCPP_INFO(get_logger(), "TCP connected, waiting for MQTT... %s", line.c_str());
+        } else {
+            RCLCPP_WARN(get_logger(), "MQTTOPEN unexpected: %s", line.c_str());
         }
         return;
     }
