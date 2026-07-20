@@ -235,7 +235,8 @@ void L610Serial::RxLoop() {
     int n = ::read(fd_, buf, sizeof(buf) - 1);
     if (n > 0) {
       buf[n] = '\0';
-      std::string data(buf, n);
+      std::string data = leftover_ + std::string(buf, n);
+      leftover_.clear();
       // 按行分割
       size_t start = 0;
       size_t end;
@@ -248,12 +249,15 @@ void L610Serial::RxLoop() {
             rx_queue_.push(line);
           }
           queue_cv_.notify_one();
-          // 如果有回调，调用
           if (rx_callback_) {
             rx_callback_(line);
           }
         }
         start = end + 1;
+      }
+      // 保存未完成行，等待下次拼起来
+      if (start < data.size()) {
+        leftover_ = data.substr(start);
       }
     }
   }

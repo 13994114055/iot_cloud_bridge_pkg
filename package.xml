@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>iot_cloud_bridge_cpp</name>
+  <name>iot_cloud_bridge_pkg</name>
   <version>1.0.0</version>
   <description>C++ ROS2 bridge to Huawei Cloud IoT via L610 4G module</description>
   <maintainer email="your_email@example.com">Your Name</maintainer>
